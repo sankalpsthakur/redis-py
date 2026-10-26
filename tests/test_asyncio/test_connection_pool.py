@@ -717,6 +717,34 @@ class TestConnectionPoolURLParsing:
         )
         assert pool.max_connections == 10
 
+    @pytest.mark.parametrize(
+        "option,scheme",
+        [
+            ("decode_responses", "redis"),
+            ("ssl_validate_ocsp", "rediss"),
+            ("ssl_validate_ocsp_stapled", "rediss"),
+        ],
+    )
+    @pytest.mark.parametrize(
+        "value,expected",
+        [
+            ("True", True),
+            ("False", False),
+            ("true", True),
+            ("false", False),
+            ("1", True),
+            ("0", False),
+        ],
+    )
+    def test_boolean_query_options_parsed_as_bool(
+        self, option, scheme, value, expected
+    ):
+        pool = redis.ConnectionPool.from_url(f"{scheme}://localhost/0?{option}={value}")
+        parsed = pool.connection_kwargs[option]
+        assert parsed is expected
+        if option == "decode_responses":
+            assert pool.get_encoder().decode_responses is expected
+
     def test_boolean_parsing(self):
         for expected, value in (
             (None, None),
